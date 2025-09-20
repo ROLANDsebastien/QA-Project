@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>QA Dashboard - FM Compta Consulting</title>
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+        <style>
+            :root {
+                --primary-light: #bfdbfe;
+                --primary-default: #60a5fa;
+                --primary-dark: #3b82f6;
+                --foreground-rgb: 0, 0, 0;
+                --background-start-rgb: 255, 255, 255;
+                --background-end-rgb: 240, 245, 255;
+            }
+            body {
+                font-family: 'Roboto', sans-serif;
+                color: rgb(var(--foreground-rgb));
+                background: linear-gradient(
+                    to bottom,
+                    rgb(var(--background-start-rgb)),
+                    rgb(var(--background-end-rgb))
+                );
+            }
+            .navbar {
+                background-color: var(--primary-dark);
+            }
+            .footer {
+                background-color: var(--primary-dark);
+            }
+            .card {
+                background-color: rgba(255, 255, 255, 0.9);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .pass {
+                color: green;
+            }
+            .fail {
+                color: red;
+            }
+            .warn {
+                color: orange;
+            }
+        </style>
+    </head>
+    <body class="flex flex-col min-h-screen">
+        <nav class="navbar py-4 px-6 text-white shadow-md sticky top-0 z-50">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-xl font-bold text-white">QA Dashboard - FM Compta Consulting</h1>
+            </div>
+        </nav>
+
+        <main class="flex-grow container mx-auto px-4 md:px-6 py-8">
+            <p class="text-lg text-center mb-8">Résumé des tests de qualité automatisés.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="card rounded-lg shadow-lg p-6" id="eslint">
+                    <h2 class="text-2xl font-bold text-primary-dark mb-4">Qualité du Code (ESLint)</h2>
+                    <p id="eslint-status">Chargement...</p>
+                </div>
+
+                <div class="card rounded-lg shadow-lg p-6" id="selenium">
+                    <h2 class="text-2xl font-bold text-primary-dark mb-4">Tests d'Interface (Selenium)</h2>
+                    <p id="selenium-status">Chargement...</p>
+                </div>
+
+                <div class="card rounded-lg shadow-lg p-6" id="k6">
+                    <h2 class="text-2xl font-bold text-primary-dark mb-4">Tests de Charge (k6)</h2>
+                    <p id="k6-status">Chargement...</p>
+                </div>
+
+                <div class="card rounded-lg shadow-lg p-6" id="npm-audit">
+                    <h2 class="text-2xl font-bold text-primary-dark mb-4">Analyse des Dépendances (npm)</h2>
+                    <p id="npm-audit-status">Chargement...</p>
+                </div>
+
+                <div class="card rounded-lg shadow-lg p-6" id="code-coverage">
+                    <h2 class="text-2xl font-bold text-primary-dark mb-4">Couverture de Code (Jest)</h2>
+                    <p id="code-coverage-status">Chargement...</p>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer text-white py-6 mt-auto">
+            <div class="container mx-auto px-4 text-center">
+                <p>&copy; 2024 FM Compta Consulting. Tous droits réservés.</p>
+            </div>
+        </footer>
+
+        <script>
+            // Load ESLint results
+            fetch("eslint_results.json")
+                .then((response) => response.json())
+                .then((data) => {
+                    let errors = 0,
+                        warnings = 0;
+                    data.forEach((file) => {
+                        file.messages.forEach((msg) => {
+                            if (msg.severity === 2) errors++;
+                            else if (msg.severity === 1) warnings++;
+                        });
+                    });
+                    const status = errors === 0 ? "✅ PASS" : "❌ FAIL";
+                    document.getElementById("eslint-status").innerHTML = `
+                    <span class="font-bold ${status.includes("PASS") ? "pass" : "fail"}">${status}</span><br>
+                    Erreurs: ${errors}, Avertissements: ${warnings}.
+                    <a href="eslint_results.json" target="_blank" class="text-primary-dark hover:underline">[Voir le rapport détaillé]</a>
+                `;
+                })
+                .catch(
+                    () =>
+                        (document.getElementById("eslint-status").innerHTML =
+                            "Erreur de chargement des résultats."),
+                );
+
+            // Load Selenium results (assuming a simple JSON output)
+            fetch("selenium_results.json")
+                .then((response) => response.json())
+                .then((data) => {
+                    const passed = data.passed || 0;
+                    const total = data.total || 0;
+                    const status = passed === total ? "✅ PASS" : "❌ FAIL";
+                    document.getElementById("selenium-status").innerHTML = `
+                    <span class="font-bold ${status.includes("PASS") ? "pass" : "fail"}">${status}</span><br>
+                    ${passed}/${total} Tests Réussis.
+                    <a href="selenium_report.html" target="_blank" class="text-primary-dark hover:underline">[Voir le rapport détaillé]</a>
+                `;
+                })
+                .catch(
+                    () =>
+                        (document.getElementById("selenium-status").innerHTML =
+                            "Erreur de chargement des résultats."),
+                );
+
+            // Load k6 results
+            fetch("k6_results.json")
+                .then((response) => response.json())
+                .then((data) => {
+                    const p95 = data.metrics?.http_req_duration?.["p(95)"] || "N/A";
+                    const status =
+                        p95 !== "N/A" && p95 < 200
+                            ? "✅ PASS"
+                            : p95 !== "N/A"
+                              ? "⚠️ WARN"
+                              : "❌ FAIL";
+                    document.getElementById("k6-status").innerHTML = `
+                    <span class="font-bold ${status.includes("PASS") ? "pass" : status.includes("WARN") ? "warn" : "fail"}">${status}</span><br>
+                    Temps de réponse p95: ${p95}ms.
+                    <a href="k6_results.json" target="_blank" class="text-primary-dark hover:underline">[Voir le rapport détaillé]</a>
+                `;
+                })
+                .catch(
+                    () =>
+                        (document.getElementById("k6-status").innerHTML =
+                            "Erreur de chargement des résultats."),
+                );
+
+            // Load npm audit results
+            fetch("npm_audit_results.json")
+                .then((response) => response.json())
+                .then((data) => {
+                    const vulnerabilities = data.metadata.vulnerabilities;
+                    const critical = vulnerabilities.critical || 0;
+                    const high = vulnerabilities.high || 0;
+                    const medium = vulnerabilities.medium || 0;
+                    const low = vulnerabilities.low || 0;
+                    const total = critical + high + medium + low;
+                    const status = total === 0 ? "✅ PASS" : "❌ FAIL";
+
+                    document.getElementById("npm-audit-status").innerHTML = `
+                    <span class="font-bold ${status.includes("PASS") ? "pass" : "fail"}">${status}</span><br>
+                    Vulnérabilités: ${total}<br>
+                    <span class="fail">Critiques: ${critical}</span>, 
+                    <span class="warn">Hautes: ${high}</span>, 
+                    Moyennes: ${medium}, 
+                    Faibles: ${low}.
+                    <a href="npm_audit_results.json" target="_blank" class="text-primary-dark hover:underline">[Voir le rapport détaillé]</a>
+                `;
+                })
+                .catch(
+                    () =>
+                        (document.getElementById("npm-audit-status").innerHTML =
+                            "Erreur de chargement des résultats."),
+                );
+
+            // Load code coverage results
+            fetch("jest_coverage.json")
+                .then((response) => response.json())
+                .then((data) => {
+                    // Calculate total coverage from coverageMap
+                    const coverageMap = data.coverageMap || {};
+                    let totalStatements = 0;
+                    let coveredStatements = 0;
+
+                    Object.values(coverageMap).forEach((fileCoverage) => {
+                        const statementMap = fileCoverage.statementMap || {};
+                        const s = fileCoverage.s || {};
+
+                        Object.keys(statementMap).forEach((key) => {
+                            totalStatements++;
+                            if (s[key] > 0) {
+                                coveredStatements++;
+                            }
+                        });
+                    });
+
+                    const coveragePct = totalStatements > 0 ? (coveredStatements / totalStatements) * 100 : 0;
+                    const status = coveragePct >= 80 ? "✅ PASS" : "❌ FAIL"; // Assuming 80% is the pass threshold
+
+                    document.getElementById("code-coverage-status").innerHTML = `
+                    <span class="font-bold ${status.includes("PASS") ? "pass" : "fail"}">${status}</span><br>
+                    Couverture des lignes: ${coveragePct.toFixed(2)}%.<br>
+                    ${coveredStatements}/${totalStatements} lignes couvertes.
+                    <a href="coverage/lcov-report/index.html" target="_blank" class="text-primary-dark hover:underline">[Voir le rapport détaillé]</a>
+                `;
+                })
+                .catch(
+                    () =>
+                        (document.getElementById("code-coverage-status").innerHTML =
+                            "Erreur de chargement des résultats."),
+                );
+        </script>
+    </body>
+</html>

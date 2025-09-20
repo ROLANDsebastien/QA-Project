@@ -1,0 +1,10 @@
+node_modules/
+.next/
+out/
+build/
+.env
+*.log
+*.tsbuildinfo
+.DS_Store
+.vercel
+.idea/
